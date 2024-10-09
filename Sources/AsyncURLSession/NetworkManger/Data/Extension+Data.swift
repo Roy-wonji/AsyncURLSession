@@ -7,6 +7,7 @@
 
 import Foundation
 
+@available(iOS 9.0, macOS 9.0, *)
 extension Data {
     //MARK: -  async/ await 으로 디코딩
     func decoded<T: Decodable>(as type: T.Type) throws -> T {

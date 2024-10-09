@@ -7,10 +7,25 @@
 
 import Foundation
 
-
-@available(iOS 12.0.0, macOS 10.15, *)
+@available(iOS 9.0, macOS 10.13, *)
 extension URLSession {
-    // URLSession의 data(for:)를 Result 타입으로 반환하는 헬퍼 함수
+    func dataResult(for request: URLRequest, completion: @escaping @Sendable (Result<(Data, URLResponse), Error>) -> Void) {
+        let task = self.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+            } else if let data = data, let response = response {
+                completion(.success((data, response)))
+            } else {
+                let unknownError = NSError(domain: "Unknown error", code: -1, userInfo: nil)
+                completion(.failure(unknownError))
+            }
+        }
+        task.resume()
+    }
+}
+
+@available(iOS 15.0, macOS 12.0, *)
+extension URLSession {
     func dataResult(for request: URLRequest) async -> Result<(Data, URLResponse), Error> {
         do {
             let (data, response) = try await self.data(for: request)

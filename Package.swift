@@ -11,13 +11,16 @@ let package = Package(
             targets: ["AsyncURLSession"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Roy-wonji/LogMacro.git", from: "1.0.3"),
+//        .package(url: "https://github.com/Roy-wonji/LogMacro.git", branch: "main"),
     ],
     targets: [
         .target(
             name: "AsyncURLSession",
             dependencies: [
-                .product(name: "LogMacro", package: "LogMacro"),
+//                .product(name: "LogMacro", package: "LogMacro"),
+            ],
+            linkerSettings: [
+                .linkedFramework("OSLog")
             ]
         ),
         .testTarget(
