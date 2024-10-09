@@ -58,10 +58,10 @@ public class AsyncProvider<T: TargetType> {
 
         case 500:
             Log.error("Internal Server Error (500), attempting to decode response (Retry Count: \(retryCount + 1))")
-            
+
             if retryCount < maxRetryCount {
                 do {
-                    // 500 에러일 때 데이터를 제네릭 D 타입으로 디코딩 시도
+                    // 500 상태 코드일 때도 데이터를 디코딩 시도
                     return try decodeErrorResponseData(data: data, decodeTo: D.self)
                 } catch {
                     Log.error("Decoding failed for 500 error response, retrying... (Retry Count: \(retryCount + 1))")
@@ -69,7 +69,14 @@ public class AsyncProvider<T: TargetType> {
                 }
             } else {
                 Log.error("Failed after 3 retries for 500 error response")
-                throw DataError.unhandledStatusCode(httpResponse.statusCode)
+
+                // 500 상태 코드에서 실패할 경우에도 ErrorResponse를 처리하려고 시도
+                if let errorResponse = try? decodeErrorResponseData(data: data, decodeTo: D.self) {
+                    Log.debug("Decoded ErrorResponse with 500 status code")
+                    return errorResponse
+                } else {
+                    throw DataError.unhandledStatusCode(httpResponse.statusCode)
+                }
             }
 
         default:
