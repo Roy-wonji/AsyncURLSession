@@ -30,6 +30,7 @@ public class AsyncProvider<T: TargetType> {
         return try await executeWithRetry(request: request, decodeTo: type, retryCount: 0)
     }
     
+    @available(iOS 15.0, macOS 12.0, *)
     private func executeWithRetry<D: Decodable & Sendable>(
         request: URLRequest,
         decodeTo type: D.Type,
