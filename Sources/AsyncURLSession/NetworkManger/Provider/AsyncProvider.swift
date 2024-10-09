@@ -44,7 +44,7 @@ public class AsyncProvider<T: TargetType> {
         
         switch httpResponse.statusCode {
         case 200...299:
-            return try decodeData(data, forStatusCode: httpResponse.statusCode)
+            return try data.decoded(as: D.self)
             
         case 400:
             Log.error("Bad Request (400) for URL: \(request.url?.absoluteString ?? "No URL")")
@@ -59,7 +59,7 @@ public class AsyncProvider<T: TargetType> {
             
             if retryCount < maxRetryCount {
                 do {
-                    return try decodeData(data, forStatusCode: httpResponse.statusCode)
+                    return try data.decodeData(as: D.self, forStatusCode: httpResponse.statusCode)
                 } catch {
                     Log.error("Decoding failed for 500 error response, retrying... (Retry Count: \(retryCount + 1))")
                     return try await executeWithRetry(request: request, decodeTo: type, retryCount: retryCount + 1)
