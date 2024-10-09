@@ -35,18 +35,66 @@ let package = Package(
 import AsyncURLSession
 ```
                      
-###  requestAsync
-#### async/await만 사용하게 구현
+### async/await만 사용하게 구현 Service 부분
 
 ```swift
 import AsyncURLSession
 
+protocol BaseTargetType : TargetType { }
+
+extension BaseTargetType {
+    public var baseURL: URL {
+        return URL(string: BaseAPI.baseURL.apiDesc)!
+    }
+    
+    public var headers: [String : String]? {
+        return APIHeader.baseHeader
+    }
+    
+}
+```
+
+```swift
+mport AsyncURLSession
+
+public enum TrackService {
+    case trackEvent(event: Event)
+}
+
+extension TrackService : BaseTargetType {
+    public var path: String {
+        switch self {
+        case .trackEvent:
+            return TrackAPI.trackEvent.desc
+        }
+    }
+    
+    public var method: AsyncURLSession.HTTPMethod {
+        switch self {
+        case .trackEvent:
+            return .post
+        }
+    }
+    
+    public var task: AsyncURLSession.NetworkTask {
+        switch self {
+        case .trackEvent(let event):
+            return .requestParameters(parameters: event.toDictionary(), encoding: .json)
+        }
+    }
+}
+```
+
+
+### requestAsync 사용 부분
+```swift
 let provider = AsyncProvider<GitHub>()
 
  func getDate() async throws -> CurrentDate? {
     return try await provider.requestAsyncAwait(.getDate, decodeTo: CurrentDate.self)
 }
 ```
+
 
 ### Log Use
 로그 관련 사용은 [LogMacro](https://github.com/Roy-wonji/LogMacro) 해당 라이브러리에 문서를 참고 해주세요. <br>
