@@ -13,7 +13,7 @@ import OSLog
 import OSLog  // LogMacro가 사용 불가능한 경우 (더 낮은 버전)
 
 @available(iOS 12.0, macOS 10.15, *)
-class NetworkProvider<T: TargetType> {
+class AsyncProvider<T: TargetType> {
     private let session: URLSession
 
     init(session: URLSession = .shared) {
@@ -63,7 +63,7 @@ class NetworkProvider<T: TargetType> {
 
 
 @available(iOS 9.0, macOS 9.0, *)
-class NetworkProviders<T: TargetType> {
+class AsyncProviders<T: TargetType> {
     // macOS 12.0 미만 및 iOS 15.0 미만에서 사용할 completion handler 기반의 비동기 요청 처리
     private let session: URLSession
 
