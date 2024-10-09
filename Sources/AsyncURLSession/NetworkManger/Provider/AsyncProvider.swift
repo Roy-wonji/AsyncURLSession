@@ -16,11 +16,11 @@ import OSLog  // LogMacro가 사용 불가능한 경우 (더 낮은 버전)
 public class AsyncProvider<T: TargetType> {
     private let session: URLSession
     private let maxRetryCount = 3
-    
+
     public init(session: URLSession = .shared) {
         self.session = session
     }
-    
+
     @available(iOS 15.0, macOS 12.0, *)
     public func requestAsync<D: Decodable & Sendable>(
         _ target: T,
@@ -29,7 +29,7 @@ public class AsyncProvider<T: TargetType> {
         let request = URLRequestBuilder.buildRequest(from: target)
         return try await executeWithRetry(request: request, decodeTo: type, retryCount: 0)
     }
-    
+
     @available(iOS 15.0, macOS 12.0, *)
     private func executeWithRetry<D: Decodable & Sendable>(
         request: URLRequest,
@@ -37,30 +37,32 @@ public class AsyncProvider<T: TargetType> {
         retryCount: Int
     ) async throws -> D {
         let (data, response) = try await session.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             Log.error("No HTTP response received")
             throw DataError.noData
         }
-        
+
         switch httpResponse.statusCode {
         case 200...299:
+            // 성공 응답 처리
             return try data.decoded(as: D.self)
-            
+
         case 400:
             Log.error("Bad Request (400) for URL: \(request.url?.absoluteString ?? "No URL")")
             throw DataError.customError("Bad Request (400)")
-            
+
         case 404:
             Log.error("Not Found (404) for URL: \(request.url?.absoluteString ?? "No URL")")
             throw DataError.customError("Not Found (404)")
-            
+
         case 500:
             Log.error("Internal Server Error (500), attempting to decode response (Retry Count: \(retryCount + 1))")
             
             if retryCount < maxRetryCount {
                 do {
-                    return try data.decodeData(as: D.self, forStatusCode: httpResponse.statusCode)
+                    // 500 에러일 때 데이터를 제네릭 D 타입으로 디코딩 시도
+                    return try decodeErrorResponseData(data: data, decodeTo: D.self)
                 } catch {
                     Log.error("Decoding failed for 500 error response, retrying... (Retry Count: \(retryCount + 1))")
                     return try await executeWithRetry(request: request, decodeTo: type, retryCount: retryCount + 1)
@@ -69,10 +71,23 @@ public class AsyncProvider<T: TargetType> {
                 Log.error("Failed after 3 retries for 500 error response")
                 throw DataError.unhandledStatusCode(httpResponse.statusCode)
             }
-            
+
         default:
             Log.error("Unhandled status code: \(httpResponse.statusCode) for URL: \(request.url?.absoluteString ?? "No URL")")
             throw DataError.unhandledStatusCode(httpResponse.statusCode)
+        }
+    }
+
+    private func decodeErrorResponseData<D: Decodable>(data: Data, decodeTo type: D.Type) throws -> D {
+        let decoder = JSONDecoder()
+
+        // 데이터를 제네릭 D 타입으로 디코딩 시도
+        if let decodedData = try? decoder.decode(D.self, from: data) {
+            Log.debug("Successfully decoded response: \(decodedData)")
+            return decodedData
+        } else {
+            Log.error("Failed to decode response as type \(D.self)")
+            throw URLError(.cannotParseResponse)
         }
     }
 }
