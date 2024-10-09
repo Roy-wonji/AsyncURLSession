@@ -38,7 +38,7 @@ public class AsyncProvider<T: TargetType> {
             switch httpResponse.statusCode {
             case 200...299:
                 if let decodedData = try? data.decoded(as: D.self) {
-                    Log.network("Request succeeded with data: \(httpResponse)")
+                    Log.network("Request succeeded with data: \(decodedData)")
                     return decodedData
                 } else {
                     Log.error("Decoding failed for data with status code \(httpResponse.statusCode)")
@@ -94,9 +94,9 @@ public class AsyncProviders<T: TargetType> {
             do {
                 switch httpResponse.statusCode {
                 case 200...299:
-                    let decoded = try data.decoded(as: D.self)
-                    Log.network("Request succeeded with data: \(httpResponse)")
-                    completion(.success(decoded))  // 성공 시 처리
+                    let decodedData = try data.decoded(as: D.self)
+                    Log.network("Request succeeded with data: \(decodedData)")
+                    completion(.success(decodedData))  // 성공 시 처리
                 case 400:
                     Log.error("Bad Request (400) for URL: \(request.url?.absoluteString ?? "No URL")")
                     completion(.failure(DataError.customError("Bad Request (400)")))
