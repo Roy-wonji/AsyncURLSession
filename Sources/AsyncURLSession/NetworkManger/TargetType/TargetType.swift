@@ -12,7 +12,7 @@ public protocol TargetType {
     var path: String { get }
     var method: HTTPMethod { get }
     var headers: [String: String]? { get }
-    var task: Task { get }
+    var task: NetworkTask { get }
 }
 
 

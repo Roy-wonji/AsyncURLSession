@@ -7,6 +7,7 @@
 
 import Foundation
 import OSLog
+import Combine
 
 // 실제 네트워크 요청을 처리하는 클래스
 
@@ -16,6 +17,7 @@ import OSLog  // LogMacro가 사용 불가능한 경우 (더 낮은 버전)
 public class AsyncProvider<T: TargetType> {
     private let session: URLSession
     private let maxRetryCount = 3
+    private let retryDelay: TimeInterval = 2.0  // 재시도 간격 (2초)
 
     public init(session: URLSession = .shared) {
         self.session = session
@@ -36,52 +38,51 @@ public class AsyncProvider<T: TargetType> {
         decodeTo type: D.Type,
         retryCount: Int
     ) async throws -> D {
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            Log.error("No HTTP response received")
-            throw DataError.noData
-        }
-
-        switch httpResponse.statusCode {
-        case 200...299:
-            // 성공 응답 처리
-            return try data.decoded(as: D.self)
-
-        case 400:
-            Log.error("Bad Request (400) for URL: \(request.url?.absoluteString ?? "No URL")")
-            throw DataError.customError("Bad Request (400)")
-
-        case 404:
-            Log.error("Not Found (404) for URL: \(request.url?.absoluteString ?? "No URL")")
-            throw DataError.customError("Not Found (404)")
-
-        case 500:
-            Log.error("Internal Server Error (500), attempting to decode response (Retry Count: \(retryCount + 1))")
-
-            if retryCount < maxRetryCount {
-                do {
-                    // 500 상태 코드일 때도 데이터를 디코딩 시도
-                    return try decodeErrorResponseData(data: data, decodeTo: D.self)
-                } catch {
-                    Log.error("Decoding failed for 500 error response, retrying... (Retry Count: \(retryCount + 1))")
-                    return try await executeWithRetry(request: request, decodeTo: type, retryCount: retryCount + 1)
-                }
-            } else {
-                Log.error("Failed after 3 retries for 500 error response")
-
-                // 500 상태 코드에서 실패할 경우에도 ErrorResponse를 처리하려고 시도
-                if let errorResponse = try? decodeErrorResponseData(data: data, decodeTo: D.self) {
-                    Log.debug("Decoded ErrorResponse with 500 status code")
-                    return errorResponse
-                } else {
-                    throw DataError.unhandledStatusCode(httpResponse.statusCode)
-                }
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                Log.error("No HTTP response received")
+                throw DataError.noData
             }
 
-        default:
-            Log.error("Unhandled status code: \(httpResponse.statusCode) for URL: \(request.url?.absoluteString ?? "No URL")")
-            throw DataError.unhandledStatusCode(httpResponse.statusCode)
+            switch httpResponse.statusCode {
+            case 200...299:
+                // 성공 응답 처리
+                return try data.decoded(as: D.self)
+
+            case 400:
+                Log.error("Bad Request (400) for URL: \(request.url?.absoluteString ?? "No URL")")
+                throw DataError.customError("Bad Request (400)")
+
+            case 404:
+                Log.error("Not Found (404) for URL: \(request.url?.absoluteString ?? "No URL")")
+                throw DataError.customError("Not Found (404)")
+
+            case 500:
+                Log.error("Internal Server Error (500), attempting to decode response (Retry Count: \(retryCount + 1))")
+                // 500 에러일 때 데이터를 제네릭 D 타입으로 디코딩 시도
+                if retryCount < maxRetryCount {
+                    // 대기 후 재시도
+                    try await Task.sleep(nanoseconds: UInt64(retryDelay * 1_000_000_000))  // 대기 시간
+                    return try await executeWithRetry(request: request, decodeTo: type, retryCount: retryCount + 1)
+                } else {
+                    Log.error("Failed after 3 retries for 500 error response")
+                    throw DataError.unhandledStatusCode(httpResponse.statusCode)
+                }
+
+            default:
+                Log.error("Unhandled status code: \(httpResponse.statusCode) for URL: \(request.url?.absoluteString ?? "No URL")")
+                throw DataError.unhandledStatusCode(httpResponse.statusCode)
+            }
+        } catch {
+            Log.error("Network request failed with error: \(error.localizedDescription)")
+            if retryCount < maxRetryCount {
+                // 대기 후 재시도
+                try await Task.sleep(nanoseconds: UInt64(retryDelay * 1_000_000_000))  // 대기 시간
+                return try await executeWithRetry(request: request, decodeTo: type, retryCount: retryCount + 1)
+            } else {
+                throw error  // 재시도 횟수를 초과한 경우 원래 에러를 던짐
+            }
         }
     }
 
