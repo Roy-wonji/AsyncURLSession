@@ -19,7 +19,7 @@ public class AsyncProvider<T: TargetType> {
     public init(session: URLSession = .shared) {
         self.session = session
     }
-    
+
     @available(iOS 15.0, macOS 12.0, *)
     public func requestAsync<D: Decodable & Sendable>(
         _ target: T,
@@ -50,6 +50,16 @@ public class AsyncProvider<T: TargetType> {
             case 404:
                 Log.error("Not Found (404) for URL: \(request.url?.absoluteString ?? "No URL")")
                 throw DataError.customError("Not Found (404)")
+            case 500:
+                Log.error("Internal Server Error (500), attempting to decode response")
+                // 500 상태 코드여도 데이터를 시도해본다
+                if let decodedData = try? data.decoded(as: D.self) {
+                    Log.network("Request succeeded despite 500 error, data: \(decodedData)")
+                    return decodedData
+                } else {
+                    Log.error("Decoding failed for 500 error response")
+                    throw DataError.unhandledStatusCode(httpResponse.statusCode)
+                }
             default:
                 Log.error("Unhandled status code: \(httpResponse.statusCode) for URL: \(request.url?.absoluteString ?? "No URL")")
                 throw DataError.unhandledStatusCode(httpResponse.statusCode)
@@ -70,15 +80,15 @@ public class AsyncProviders<T: TargetType> {
     public init(session: URLSession = .shared) {
         self.session = session
     }
-    
+
     @available(iOS 9.0, macOS 9.0, *)
-    public func requestAsync<D: Decodable  & Sendable>(
+    public func requestAsync<D: Decodable & Sendable>(
         _ target: T,
         decodeTo type: D.Type,
         completion: @Sendable @escaping (Result<D, Error>) -> Void
     ) {
         let request = URLRequestBuilder.buildRequest(from: target)
-        
+
         let task = session.dataTask(with: request) { data, response, error in
             if let error = error {
                 Log.error("Request failed with error: \(error.localizedDescription)")
@@ -103,6 +113,16 @@ public class AsyncProviders<T: TargetType> {
                 case 404:
                     Log.error("Not Found (404) for URL: \(request.url?.absoluteString ?? "No URL")")
                     completion(.failure(DataError.customError("Not Found (404)")))
+                case 500:
+                    Log.error("Internal Server Error (500), attempting to decode response")
+                    // 500 상태 코드여도 데이터를 시도해본다
+                    if let decodedData = try? data.decoded(as: D.self) {
+                        Log.network("Request succeeded despite 500 error, data: \(decodedData)")
+                        completion(.success(decodedData))
+                    } else {
+                        Log.error("Decoding failed for 500 error response")
+                        completion(.failure(DataError.unhandledStatusCode(httpResponse.statusCode)))
+                    }
                 default:
                     Log.error("Unhandled status code: \(httpResponse.statusCode) for URL: \(request.url?.absoluteString ?? "No URL")")
                     completion(.failure(DataError.unhandledStatusCode(httpResponse.statusCode)))
