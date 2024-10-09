@@ -77,7 +77,6 @@ extension AsyncProvider: @unchecked Sendable {}
 
 @available(iOS 9.0, macOS 9.0, *)
 public class AsyncProviders<T: TargetType> {
-    // macOS 12.0 미만 및 iOS 15.0 미만에서 사용할 completion handler 기반의 비동기 요청 처리
     private let session: URLSession
 
     public init(session: URLSession = .shared) {
@@ -91,13 +90,14 @@ public class AsyncProviders<T: TargetType> {
         completion: @Sendable @escaping (Result<D, Error>) -> Void
     ) {
         let request = URLRequestBuilder.buildRequest(from: target)
-
+        
         let task = session.dataTask(with: request) { data, response, error in
             if let error = error {
                 Log.error("Request failed with error: \(error.localizedDescription)")
                 completion(.failure(error))  // 에러 발생 시 처리
                 return
             }
+            
             guard let data = data, let httpResponse = response as? HTTPURLResponse else {
                 Log.error("No HTTP response or data received")
                 completion(.failure(DataError.noData))  // 데이터가 없을 때 처리
@@ -107,7 +107,7 @@ public class AsyncProviders<T: TargetType> {
             do {
                 switch httpResponse.statusCode {
                 case 200...299:
-                    let decodedData = try data.decoded(as: D.self)
+                    let decodedData = try self.decodeData(data, as: D.self, forStatusCode: httpResponse.statusCode)
                     Log.network("Request succeeded with data: \(decodedData)")
                     completion(.success(decodedData))  // 성공 시 처리
                 case 400:
@@ -118,14 +118,10 @@ public class AsyncProviders<T: TargetType> {
                     completion(.failure(DataError.customError("Not Found (404)")))
                 case 500:
                     Log.error("Internal Server Error (500), attempting to decode response")
-                    // 500 상태 코드여도 데이터를 시도해본다
-                    if let decodedData = try? data.decoded(as: D.self) {
-                        Log.network("Request succeeded despite 500 error, data: \(decodedData)")
-                        completion(.success(decodedData))
-                    } else {
-                        Log.error("Decoding failed for 500 error response")
-                        completion(.failure(DataError.unhandledStatusCode(httpResponse.statusCode)))
-                    }
+                    // 500 상태 코드여도 디코딩을 시도한다
+                    let decodedData = try self.decodeData(data, as: D.self, forStatusCode: httpResponse.statusCode)
+                    Log.network("Request succeeded despite 500 error, data: \(decodedData)")
+                    completion(.success(decodedData))  // 성공 시 처리
                 default:
                     Log.error("Unhandled status code: \(httpResponse.statusCode) for URL: \(request.url?.absoluteString ?? "No URL")")
                     completion(.failure(DataError.unhandledStatusCode(httpResponse.statusCode)))
@@ -136,6 +132,16 @@ public class AsyncProviders<T: TargetType> {
             }
         }
         task.resume()
+    }
+
+    private func decodeData<D: Decodable>(_ data: Data, as type: D.Type, forStatusCode statusCode: Int) throws -> D {
+        let decoder = JSONDecoder()
+        do {
+            return try decoder.decode(D.self, from: data)
+        } catch {
+            Log.error("Failed to decode response with status code: \(statusCode)")
+            throw DataError.noData
+        }
     }
 }
 
