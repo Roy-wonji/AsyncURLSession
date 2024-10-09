@@ -8,7 +8,7 @@
 import Foundation
 
 
-@available(iOS 13.0.0, *)
+@available(iOS 12.0.0, macOS 10.15, *)
 extension URLSession {
     // URLSession의 data(for:)를 Result 타입으로 반환하는 헬퍼 함수
     func dataResult(for request: URLRequest) async -> Result<(Data, URLResponse), Error> {
