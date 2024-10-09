@@ -1,9 +1,3 @@
-//
-//  README.md
-//  AsyncURLSession
-//
-//  Created by Wonji Suh  on 10/9/24.
-//
 
 # AsyncURLSession
 
@@ -15,8 +9,8 @@
          
 
 💁🏻‍♂️ iOS13+ 를 지원합니다.<br>
-💁🏻‍♂️ Moya을 기반으로 하여 구현되었습니다.<br>
-💁🏻‍♂️ Moya의 다양한 옵션(requestPublisher request, Moya의 기본 매소드)을 지원합니다.<br>
+💁🏻‍♂️ URLSession을 기반으로 하여 구현되었습니다.<br>
+💁🏻‍♂️ URLSession의 다양한 옵션을 지원합니다.<br>
                   
 ## 장점
 ✅ AsyncURLSession 사용하면, 네트워킹 코드를 좀더 간결하게 사용 할수 있어요!
@@ -24,5 +18,20 @@
 ## 기반
 이 프로젝트는 [URLSession](https://developer.apple.com/documentation/foundation/urlsession)을 기반으로 구현되었습니다.<br>
 보다 자세한 내용은 해당 라이브러리의 문서를 참고해 주세요
-                     
 
+
+## Swift Package Manager(SPM) 을 통해 사용할 수 있어요
+```swift
+let package = Package(
+    ...
+    dependencies: [
+        .package(url: "https://github.com/Roy-wonji/AsyncURLSession.git", from: "1.0.0")
+    ],
+    ...
+)
+```
+
+```swift
+import AsyncURLSession
+```
+                     
