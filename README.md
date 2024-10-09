@@ -47,3 +47,22 @@ let provider = AsyncProvider<GitHub>()
     return try await provider.requestAsyncAwait(.getDate, decodeTo: CurrentDate.self)
 }
 ```
+
+### Log Use
+로그 관련 사용은 [LogMacro](https://github.com/Roy-wonji/LogMacro) 해당 라이브러리에 문서를 참고 해주세요. <br>
+
+
+## Auther
+서원지(Roy) [suhwj81@gmail.com](suhwj81@gmail.com)
+
+
+## 함께 만들어 나가요
+
+개선의 여지가 있는 모든 것들에 대해 열려있습니다.<br>
+PullRequest를 통해 기여해주세요. 🙏
+
+## License
+
+AsyncMoya 는 MIT 라이선스로 이용할 수 있습니다. 자세한 내용은 [라이선스](LICENSE) 파일을 참조해 주세요.<br>
+AsyncMoya is available under the MIT license. See the  [LICENSE](LICENSE) file for more info.
+
