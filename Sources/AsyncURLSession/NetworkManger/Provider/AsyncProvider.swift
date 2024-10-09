@@ -71,6 +71,9 @@ public class AsyncProvider<T: TargetType> {
     }
 }
 
+@available(macOS 10.15, *)
+extension AsyncProvider: @unchecked Sendable {}
+
 
 @available(iOS 9.0, macOS 9.0, *)
 public class AsyncProviders<T: TargetType> {
@@ -135,3 +138,6 @@ public class AsyncProviders<T: TargetType> {
         task.resume()
     }
 }
+
+@available(macOS 10.15, *)
+extension AsyncProviders: @unchecked Sendable {}
