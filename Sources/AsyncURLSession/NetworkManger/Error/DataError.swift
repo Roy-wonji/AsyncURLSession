@@ -12,4 +12,5 @@ public enum DataError: Error {
     case noData
     case customError(String)
     case unhandledStatusCode(Int)
+    case httpResponseError(HTTPURLResponse, String)
 }
