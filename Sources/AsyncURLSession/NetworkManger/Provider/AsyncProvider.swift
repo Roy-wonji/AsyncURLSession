@@ -15,58 +15,63 @@ import OSLog  // LogMacro가 사용 불가능한 경우 (더 낮은 버전)
 @available(iOS 12.0, macOS 10.15, *)
 public class AsyncProvider<T: TargetType> {
     private let session: URLSession
-
+    private let maxRetryCount = 3
+    
     public init(session: URLSession = .shared) {
         self.session = session
     }
-
+    
     @available(iOS 15.0, macOS 12.0, *)
     public func requestAsync<D: Decodable & Sendable>(
         _ target: T,
         decodeTo type: D.Type
     ) async throws -> D {
         let request = URLRequestBuilder.buildRequest(from: target)
-        // iOS 15.0 이상, macOS 12.0 이상에서 async/await 사용
-        let result: Result<(Data, URLResponse), Error> = await session.dataResult(for: request)
-        switch result {
-        case .success(let (data, response)):
-            guard let httpResponse = response as? HTTPURLResponse else {
-                Log.error("No HTTP response received")
-                throw DataError.noData
-            }
+        return try await executeWithRetry(request: request, decodeTo: type, retryCount: 0)
+    }
+    
+    private func executeWithRetry<D: Decodable & Sendable>(
+        request: URLRequest,
+        decodeTo type: D.Type,
+        retryCount: Int
+    ) async throws -> D {
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            Log.error("No HTTP response received")
+            throw DataError.noData
+        }
+        
+        switch httpResponse.statusCode {
+        case 200...299:
+            return try decodeData(data, forStatusCode: httpResponse.statusCode)
             
-            switch httpResponse.statusCode {
-            case 200...299:
-                if let decodedData = try? data.decoded(as: D.self) {
-                    Log.network("Request succeeded with data: \(decodedData)")
-                    return decodedData
-                } else {
-                    Log.error("Decoding failed for data with status code \(httpResponse.statusCode)")
-                    throw DataError.noData
+        case 400:
+            Log.error("Bad Request (400) for URL: \(request.url?.absoluteString ?? "No URL")")
+            throw DataError.customError("Bad Request (400)")
+            
+        case 404:
+            Log.error("Not Found (404) for URL: \(request.url?.absoluteString ?? "No URL")")
+            throw DataError.customError("Not Found (404)")
+            
+        case 500:
+            Log.error("Internal Server Error (500), attempting to decode response (Retry Count: \(retryCount + 1))")
+            
+            if retryCount < maxRetryCount {
+                do {
+                    return try decodeData(data, forStatusCode: httpResponse.statusCode)
+                } catch {
+                    Log.error("Decoding failed for 500 error response, retrying... (Retry Count: \(retryCount + 1))")
+                    return try await executeWithRetry(request: request, decodeTo: type, retryCount: retryCount + 1)
                 }
-            case 400:
-                Log.error("Bad Request (400) for URL: \(request.url?.absoluteString ?? "No URL")")
-                throw DataError.customError("Bad Request (400)")
-            case 404:
-                Log.error("Not Found (404) for URL: \(request.url?.absoluteString ?? "No URL")")
-                throw DataError.customError("Not Found (404)")
-            case 500:
-                Log.error("Internal Server Error (500), attempting to decode response")
-                // 500 상태 코드여도 데이터를 시도해본다
-                if let decodedData = try? data.decoded(as: D.self) {
-                    Log.network("Request succeeded despite 500 error, data: \(decodedData)")
-                    return decodedData
-                } else {
-                    Log.error("Decoding failed for 500 error response")
-                    throw DataError.unhandledStatusCode(httpResponse.statusCode)
-                }
-            default:
-                Log.error("Unhandled status code: \(httpResponse.statusCode) for URL: \(request.url?.absoluteString ?? "No URL")")
+            } else {
+                Log.error("Failed after 3 retries for 500 error response")
                 throw DataError.unhandledStatusCode(httpResponse.statusCode)
             }
-        case .failure(let error):
-            Log.error("Request failed with error: \(error.localizedDescription)")
-            throw error
+            
+        default:
+            Log.error("Unhandled status code: \(httpResponse.statusCode) for URL: \(request.url?.absoluteString ?? "No URL")")
+            throw DataError.unhandledStatusCode(httpResponse.statusCode)
         }
     }
 }
