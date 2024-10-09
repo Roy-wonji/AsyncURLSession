@@ -21,7 +21,7 @@ public class AsyncProvider<T: TargetType> {
     }
     
     @available(iOS 15.0, macOS 12.0, *)
-    public func requestAsync<D: Decodable & Sendable>(
+    public func requestAsync<D: Codable & Sendable>(
         _ target: T,
         decodeTo type: D.Type
     ) async throws -> D {
@@ -72,7 +72,7 @@ public class AsyncProviders<T: TargetType> {
     }
     
     @available(iOS 9.0, macOS 9.0, *)
-    public func requestAsync<D: Decodable>(
+    public func requestAsync<D: Codable>(
         _ target: T,
         decodeTo type: D.Type,
         completion: @Sendable @escaping (Result<D, Error>) -> Void
