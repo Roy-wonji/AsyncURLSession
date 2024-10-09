@@ -10,7 +10,9 @@ import OSLog
 
 // 실제 네트워크 요청을 처리하는 클래스
 
-@available(iOS 9.0, macOS 9.0, *)
+import OSLog  // LogMacro가 사용 불가능한 경우 (더 낮은 버전)
+
+@available(iOS 12.0, macOS 10.15, *)
 class NetworkProvider<T: TargetType> {
     private let session: URLSession
 
@@ -57,8 +59,18 @@ class NetworkProvider<T: TargetType> {
             throw error
         }
     }
+}
 
+
+@available(iOS 9.0, macOS 9.0, *)
+class NetworkProviders<T: TargetType> {
     // macOS 12.0 미만 및 iOS 15.0 미만에서 사용할 completion handler 기반의 비동기 요청 처리
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+    
     @available(iOS 9.0, macOS 9.0, *)
     private func requestAsync<D: Decodable>(
         _ target: T,

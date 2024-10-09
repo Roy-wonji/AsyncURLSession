@@ -7,7 +7,7 @@
 
 import Foundation
 
-@available(iOS 9.0, macOS 10.13, *)
+@available(iOS 9.0, macOS 9.0, *)
 extension URLSession {
     func dataResult(for request: URLRequest, completion: @escaping @Sendable (Result<(Data, URLResponse), Error>) -> Void) {
         let task = self.dataTask(with: request) { data, response, error in
