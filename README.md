@@ -25,7 +25,7 @@
 let package = Package(
     ...
     dependencies: [
-        .package(url: "https://github.com/Roy-wonji/AsyncURLSession.git", from: "1.0.0")
+        .package(url: "https://github.com/Roy-wonji/AsyncURLSession.git", from: "1.0.2")
     ],
     ...
 )
