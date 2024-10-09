@@ -35,3 +35,15 @@ let package = Package(
 import AsyncURLSession
 ```
                      
+###  requestAsync
+#### async/await만 사용하게 구현
+
+```swift
+import AsyncURLSession
+
+let provider = AsyncProvider<GitHub>()
+
+ func getDate() async throws -> CurrentDate? {
+    return try await provider.requestAsyncAwait(.getDate, decodeTo: CurrentDate.self)
+}
+```
