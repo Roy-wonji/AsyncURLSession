@@ -20,7 +20,7 @@ public class AsyncProvider<T: TargetType> {
         self.session = session
     }
     
-    @available(iOS 15.0, macOS 12.0, *)
+    @available(iOS 12.0, macOS 12.0, *)
     public func requestAsync<D: Codable & Sendable>(
         _ target: T,
         decodeTo type: D.Type
