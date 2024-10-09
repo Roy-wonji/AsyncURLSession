@@ -13,7 +13,8 @@ public class URLRequestBuilder {
     public init() {}
 
     static func buildRequest(from target: TargetType) -> URLRequest {
-        let url = target.baseURL.appendingPathComponent(target.path)
+        // URL 생성 시 불필요한 공백을 제거하기 위한 trim 적용
+        let url = target.baseURL.appendingPathComponent(target.path.trimmingCharacters(in: .whitespaces))
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         var request = URLRequest(url: components?.url ?? url)
         request.httpMethod = target.method.rawValue
