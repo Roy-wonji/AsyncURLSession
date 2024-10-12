@@ -171,7 +171,7 @@ public class AsyncProviders<T: TargetType> {
     private func decodeData<D: Decodable>(_ data: Data, as type: D.Type, forStatusCode statusCode: Int) throws -> D {
         let decoder = JSONDecoder()
         do {
-            return try decoder.decode(D.self, from: data)
+            return try data.decoded(as: D.self)
         } catch {
             Log.error("Failed to decode response with status code: \(statusCode)")
             throw DataError.noData
