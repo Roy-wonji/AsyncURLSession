@@ -8,7 +8,7 @@
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FMonsteel%2FAsyncMoya&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
          
 
-💁🏻‍♂️ iOS13+ 를 지원합니다.<br>
+💁🏻‍♂️ iOS15+ 를 지원합니다.<br>
 💁🏻‍♂️ URLSession을 기반으로 하여 구현되었습니다.<br>
 💁🏻‍♂️ URLSession의 다양한 옵션을 지원합니다.<br>
                   
@@ -91,7 +91,7 @@ extension TrackService : BaseTargetType {
 let provider = AsyncProvider<GitHub>()
 
  func getDate() async throws -> CurrentDate? {
-    return try await provider.requestAsyncAwait(.getDate, decodeTo: CurrentDate.self)
+    return try await provider.request(.getDate)
 }
 ```
 
@@ -113,4 +113,3 @@ PullRequest를 통해 기여해주세요. 🙏
 
 AsyncMoya 는 MIT 라이선스로 이용할 수 있습니다. 자세한 내용은 [라이선스](LICENSE) 파일을 참조해 주세요.<br>
 AsyncMoya is available under the MIT license. See the  [LICENSE](LICENSE) file for more info.
-
